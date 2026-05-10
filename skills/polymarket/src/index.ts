@@ -17,14 +17,26 @@ const program = new Command();
 program
   .name("poly")
   .description("Polymarket CLOB V2 betting CLI — natural-language friendly")
-  .version("0.1.0");
+  .version("0.2.0");
 
 program
   .command("login")
-  .description("Prompt for mnemonic + passphrase and store encrypted creds")
+  .description(
+    "Prompt for mnemonic and store creds in the OS keychain (default) or a passphrase-encrypted file (--encrypted-file).",
+  )
   .option("--json", "machine-readable output")
   .option("--force", "overwrite existing creds")
-  .action((opts) => loginCommand(opts));
+  .option(
+    "--encrypted-file",
+    "store creds as an AES-256-GCM file gated by a user-chosen passphrase instead of the OS keychain",
+  )
+  .action((opts) =>
+    loginCommand({
+      json: opts.json,
+      force: opts.force,
+      encryptedFile: opts.encryptedFile,
+    }),
+  );
 
 program
   .command("logout")

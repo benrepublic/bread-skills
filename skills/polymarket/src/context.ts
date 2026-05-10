@@ -29,7 +29,7 @@ export function loadSignerContext(jsonOutput: boolean): SignerContext {
   const config = loadConfig();
   let creds: Creds;
   try {
-    creds = loadCreds(config.credsPath, getPassphrase());
+    creds = loadCreds(config.credsPath, { passphrase: getPassphrase() });
   } catch (err) {
     fail(jsonOutput, err instanceof Error ? err.message : "Failed to load creds");
   }

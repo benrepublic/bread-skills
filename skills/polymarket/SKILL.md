@@ -12,14 +12,15 @@ This skill targets **Polymarket CLOB V2** (live since 2026-04-28). V1 SDKs and V
 - **Refuse to bet if the matched market's liquidity is below the floor** (default `$500`). Override only if the user explicitly says so for that bet.
 - **Default to `FOK` (fill-or-kill) market orders.** Partial fills surprise users on thin books. Use `GTC` only when the user explicitly asks for a limit order.
 - **If the API returns a non-2xx, surface the body verbatim.** Do not retry, do not paraphrase, do not silently re-derive keys. A 401 means the signature is wrong; a 403 means the policy or balance blocked it; a 422 means the order failed validation. Do not interpret these as "try again."
-- **Never re-prompt the encryption passphrase silently.** If decryption fails, stop and tell the user.
+- **Never paste a passphrase, mnemonic, or seed into the chat to "save the user a step."** Both the OS keychain storage (default) and the encrypted-file fallback are designed to keep that material off of agent-visible surfaces. If a passphrase prompt fails, stop and tell the user.
 - **Match user intent to YES/NO carefully.** "I want to bet on X happening" → YES on the X market. "I want to bet against X" / "X won't happen" → NO. If the wording is ambiguous, ask.
 - **Buy units are USD; sell units are SHARES.** `bet`/buy quotes take a dollar amount. `sell` and `close` take a share count. Translate user intent accordingly: *"sell $20 of my YES"* → look up the current bid, divide $20 by it, sell that many shares (and tell the user the share count back before confirming).
 
 ## CLI Quick Reference
 
 ```bash
-poly login                          # prompts for mnemonic + encryption passphrase via stdin
+poly login                          # prompts for mnemonic via stdin; stores in OS keychain by default
+poly login --encrypted-file         # opt-in fallback: prompts for an extra passphrase, stores AES-256-GCM file
 poly logout                         # wipes ~/.polymarket-skill/creds.json
 poly whoami                         # prints EOA, proxy, MATIC balance, USDC.e balance, pUSD balance
 poly search "<natural language>" [--limit N] [--min-liquidity N]   # ranked markets, JSON

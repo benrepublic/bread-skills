@@ -121,8 +121,7 @@ cat <<EOF
      agent's skill loader at the file path above.
 
   3. To bet real money:
-       poly login                          # paste mnemonic via stdin
-       export POLYMARKET_PASSPHRASE='…'
+       poly login                          # paste mnemonic via stdin; stored in OS keychain
        poly whoami                         # check balances
        poly fund <usd> --confirm           # wrap USDC.e → pUSD (one-time)
        poly bet <conditionId> YES <usd> --confirm

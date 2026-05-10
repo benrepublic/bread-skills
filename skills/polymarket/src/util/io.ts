@@ -63,12 +63,12 @@ export function promptHidden(prompt: string): Promise<string> {
   });
 }
 
-export function getPassphrase(): string {
-  const env = process.env.POLYMARKET_PASSPHRASE;
-  if (!env) {
-    throw new Error(
-      "POLYMARKET_PASSPHRASE not set. Export the encryption passphrase before running this command.",
-    );
-  }
-  return env;
+/**
+ * Read POLYMARKET_PASSPHRASE from the environment if set. Only the
+ * encrypted-file storage mode needs it; the OS keychain mode reads creds
+ * without any passphrase. Callers pass the result through to loadCreds(),
+ * which throws if a passphrase is required but missing.
+ */
+export function getPassphrase(): string | undefined {
+  return process.env.POLYMARKET_PASSPHRASE || undefined;
 }

@@ -90,13 +90,13 @@ rm -rf /tmp/poly-test
 
 | Variable                                | Default                              | Purpose                              |
 | --------------------------------------- | ------------------------------------ | ------------------------------------ |
-| `POLYMARKET_PASSPHRASE`                 | (required for non-login commands)    | Decrypts the credentials file        |
+| `POLYMARKET_PASSPHRASE`                 | (only used by `--encrypted-file` mode) | Decrypts the AES-encrypted creds file; not used in default keychain mode |
 | `POLYGON_RPC_URL`                       | `https://polygon-rpc.com`            | Polygon RPC for balances + funding   |
 | `POLYMARKET_CLOB_HOST`                  | `https://clob.polymarket.com`        | CLOB API host                        |
 | `POLYMARKET_GAMMA_HOST`                 | `https://gamma-api.polymarket.com`   | Gamma API host                       |
 | `POLYMARKET_CHAIN_ID`                   | `137`                                | `80002` for Amoy testnet             |
 | `POLYMARKET_MIN_LIQUIDITY`              | `500`                                | Refuse-to-bet floor (USD)            |
-| `POLYMARKET_CREDS_PATH`                 | `~/.polymarket-skill/creds.json`     | Encrypted creds location             |
+| `POLYMARKET_CREDS_PATH`                 | `~/.polymarket-skill/creds.json`     | Marker file location (mode + EOA in keychain mode; full encrypted blob in `--encrypted-file` mode) |
 | `POLYMARKET_PUSD_ADDRESS`               | (doc'd default)                      | Override pUSD contract address       |
 | `POLYMARKET_USDCE_ADDRESS`              | (doc'd default)                      | Override USDC.e contract address     |
 | `POLYMARKET_ONRAMP_ADDRESS`             | (doc'd default)                      | Override CollateralOnramp address    |
@@ -109,13 +109,9 @@ rm -rf /tmp/poly-test
 ```text
 $ poly login
 Mnemonic (12/24 words, hidden): ········································
-Encryption passphrase (min 8 chars, hidden): ··········
-Confirm passphrase: ··········
 Logged in. EOA: 0xAbC…123
-Creds saved to /Users/me/.polymarket-skill/creds.json (encrypted).
-Set POLYMARKET_PASSPHRASE in your shell to unlock other commands.
-
-$ export POLYMARKET_PASSPHRASE='correct-horse-battery-staple'
+Creds stored in macOS Keychain (marker at /Users/me/.polymarket-skill/creds.json).
+No passphrase needed — future commands read the wallet from the keychain automatically while you're logged in.
 
 $ poly whoami
 EOA:               0xAbC…123
