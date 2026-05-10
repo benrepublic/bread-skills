@@ -123,8 +123,10 @@ pUSD allowance:    NOT SET — run `poly fund`
 CTF approval:      NOT SET — run `poly fund`
 API key:           a1b2c3d4…
 
-# Bridge $100 USDC from Spark → Polygon EOA via grid-wallet-cli
-$ grid-wallet-cli orchestra withdraw 102000000 USDC \
+# Bridge $100 USDC.e from Spark → Polygon EOA via grid-wallet-cli
+# (Polymarket only accepts USDC.e — the original bridged USDC contract —
+#  not Polygon's newer native USDC. Always pass USDC.e here.)
+$ grid-wallet-cli orchestra withdraw 102000000 USDC.e \
     --to polygon --recipient 0xAbC…123 \
     --reason "Funding Polymarket bet on hantavirus pandemic 2026"
 ✓ orderId orch_XXX — pending

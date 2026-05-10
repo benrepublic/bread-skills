@@ -59,7 +59,9 @@ When the user says something like *"I'd like to bet $100 on whether there will b
 
 ## Funding Flow (with grid-wallet-cli)
 
-Polymarket settles in **pUSD** on Polygon. Grid orchestra-withdraws **USDC** to Polygon. The skill bridges between the two with `poly fund`.
+Polymarket settles in **pUSD** on Polygon, which wraps **USDC.e** (the bridged-USDC contract `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`) — **NOT** Polygon's newer native USDC (`0x3c499c542cef5e3811e1192ce70d8cc03d5c3359`). Always bridge `USDC.e` specifically. Native USDC sitting on the EOA is invisible to `poly fund` and produces a confusing `INSUFFICIENT_USDC_E` error.
+
+Grid orchestra-withdraws `USDC.e` to Polygon. The skill wraps that into pUSD with `poly fund`.
 
 If you're on an agent harness that gates shell access, the first `grid-wallet-cli` call will prompt the user for permission. The permission rules this flow needs are documented in `PERMISSIONS.md` next to this file — show that file to the user before the first call so they can grant the allow-list in one pass instead of mid-flow.
 
@@ -68,7 +70,7 @@ Read `grid-wallet-cli`'s own `SKILL.md` first if it's installed — that skill's
 ```text
 1. poly whoami                          # find the EOA address; note pUSD balance
 2. If pUSD < bet amount:
-     a. grid-wallet-cli orchestra withdraw <amount+buffer> USDC \
+     a. grid-wallet-cli orchestra withdraw <amount+buffer> USDC.e \
           --to polygon --recipient <EOA> \
           --reason "Funding Polymarket bet on <market question>"
      b. Poll: grid-wallet-cli orchestra status <orderId>     # until completed

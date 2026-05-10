@@ -49,7 +49,8 @@ export async function fundCommand(
       fail(
         jsonOutput,
         `INSUFFICIENT_USDC_E: have ${before.usdcE} USDC.e, need ${usdAmount}. ` +
-          `Bridge USDC to ${eoa} via \`grid-wallet-cli orchestra withdraw ${usdAmount} USDC --to polygon --recipient ${eoa} --reason "<purpose>"\`.`,
+          `Polymarket only accepts the bridged USDC.e token (0x2791Bca1...), not Polygon's native USDC. ` +
+          `Bridge USDC.e to ${eoa} via \`grid-wallet-cli orchestra withdraw ${usdAmount} USDC.e --to polygon --recipient ${eoa} --reason "<purpose>"\`.`,
       );
     }
     const allowanceTx = await ensureUsdcAllowanceForOnramp(config, signer, amountRaw);

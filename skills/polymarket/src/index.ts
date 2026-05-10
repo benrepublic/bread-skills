@@ -17,7 +17,7 @@ const program = new Command();
 program
   .name("poly")
   .description("Polymarket CLOB V2 betting CLI — natural-language friendly")
-  .version("0.2.1");
+  .version("0.2.2");
 
 program
   .command("login")

@@ -47,11 +47,13 @@ wallet CLI.
 
 ## Why this skill calls `grid-wallet-cli`
 
-Polymarket settles in pUSD on Polygon. Grid (the Bread off-ramp) settles
-USDC to Polygon. Bridging between the two is `poly fund`'s job, but only
-*after* USDC is already on the Polymarket EOA. The `grid-wallet-cli
-orchestra withdraw` step is what gets USDC there from a Bread Spark
-balance.
+Polymarket settles in pUSD on Polygon, which wraps **USDC.e** specifically
+— the original bridged USDC token (`0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`),
+not Polygon's newer native USDC. Bridging USDC.e to the Polymarket EOA is
+what `grid-wallet-cli orchestra withdraw <amt> USDC.e --to polygon ...`
+does. Once the EOA holds USDC.e, `poly fund` wraps it into pUSD and sets
+exchange allowances. Native USDC sitting on the EOA is invisible to
+`poly fund` and produces a confusing `INSUFFICIENT_USDC_E` error.
 
 If you don't have `grid-wallet-cli` installed, the skill still works
 end-to-end — you just fund the EOA via any other rail (CEX withdrawal,
