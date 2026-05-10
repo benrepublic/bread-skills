@@ -60,7 +60,9 @@ When the user says something like *"I'd like to bet $100 on whether there will b
 
 Polymarket settles in **pUSD** on Polygon. Grid orchestra-withdraws **USDC** to Polygon. The skill bridges between the two with `poly fund`.
 
-Read `~/Developer/Bread-Aurora/packages/grid-wallet-cli/SKILL.md` first — that skill's "Critical Rules" still apply (always include `--reason`, never fabricate balances, confirm before executing).
+If you're on an agent harness that gates shell access, the first `grid-wallet-cli` call will prompt the user for permission. The permission rules this flow needs are documented in `PERMISSIONS.md` next to this file — show that file to the user before the first call so they can grant the allow-list in one pass instead of mid-flow.
+
+Read `grid-wallet-cli`'s own `SKILL.md` first if it's installed — that skill's "Critical Rules" still apply (always include `--reason`, never fabricate balances, confirm before executing).
 
 ```text
 1. poly whoami                          # find the EOA address; note pUSD balance
