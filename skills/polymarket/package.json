@@ -1,6 +1,6 @@
 {
   "name": "polymarket-skill",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Agent skill for placing natural-language bets on Polymarket CLOB V2",
   "type": "commonjs",

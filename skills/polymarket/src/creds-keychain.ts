@@ -39,6 +39,14 @@ class MacOsBackend implements KeychainBackend {
 
   set(key: string, value: string): void {
     // -U overwrites if a matching item exists.
+    // -A opens the per-app ACL so any process running as the user can read the
+    //    item without a GUI prompt. Without this, the FIRST read from any new
+    //    binary triggers a SecurityAgent dialog ("allow `poly` to access...")
+    //    that can only be dismissed at the Mac. Since the entire point of
+    //    keychain mode is a seamless agent flow, -A is the right posture; the
+    //    item is still sealed when the user logs out or the Mac locks. Matches
+    //    Linux libsecret behavior (no per-app ACL) and the convention used by
+    //    gh, gcloud, ssh-agent, npm, etc. for CLI-with-keychain storage.
     // Pass the value via -w argument — there's no documented stdin form for
     // add-generic-password on macOS, but the argv is visible only to processes
     // with same-uid access, which on a personal Mac is just the user's own
@@ -46,7 +54,7 @@ class MacOsBackend implements KeychainBackend {
     // `security` invocation (sub-millisecond on local IPC to securityd).
     const r = spawnSync(
       "security",
-      ["add-generic-password", "-s", SERVICE, "-a", key, "-w", value, "-U"],
+      ["add-generic-password", "-s", SERVICE, "-a", key, "-w", value, "-U", "-A"],
       { stdio: ["ignore", "ignore", "pipe"] },
     );
     if (r.status !== 0) {

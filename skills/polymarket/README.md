@@ -197,9 +197,8 @@ Will there be a hantavirus pandemic in 2026?
 ## Security posture
 
 - Mnemonic accepted on stdin only, with the local TTY in raw mode and stdout muted while typing. Never logged, never serialized to argv or env vars, never written to disk in plaintext.
-- Encrypted creds file is `0600`, parent dir is `0700`.
-- AES-256-GCM with a fresh 16-byte salt and 12-byte IV per save. PBKDF2-HMAC-SHA256, 200 000 iterations.
-- Wrong passphrase fails closed — never silently re-derives.
+- **Keychain mode (default):** mnemonic + API key live in macOS Keychain / Linux libsecret, sealed when the user is logged out or the machine is locked. The on-disk marker file contains only `{ version, mode, eoa }` — no secret material. On macOS the item is stored with `-A` (no per-app ACL prompt) so the agent flow has zero GUI friction — matching the convention used by `gh`, `gcloud`, `ssh-agent`, `npm`. Threat model: as safe as your user-login session; an attacker with shell access to your *unlocked* machine can read it (same as your browser cookies, password manager, SSH keys).
+- **`--encrypted-file` mode (opt-in):** AES-256-GCM with a fresh 16-byte salt and 12-byte IV per save; PBKDF2-HMAC-SHA256, 200 000 iterations; file is `0600`, parent dir is `0700`. Requires `POLYMARKET_PASSPHRASE` on every command. Wrong passphrase fails closed — never silently re-derives.
 - The CLI never reads, prints, or transmits the API key secret. The first eight chars of the public key may be displayed by `whoami` for debugging.
 
 ## Cross-agent compatibility
