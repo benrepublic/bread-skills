@@ -1,0 +1,29 @@
+{
+  "name": "polymarket-skill",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent skill for placing natural-language bets on Polymarket CLOB V2",
+  "type": "commonjs",
+  "bin": {
+    "poly": "./bin/poly"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test --import tsx ./test/*.test.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@polymarket/clob-client-v2": "^1.0.5",
+    "bip39": "^3.1.0",
+    "commander": "^12.1.0",
+    "ethers": "^6.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
