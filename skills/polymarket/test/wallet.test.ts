@@ -41,4 +41,16 @@ describe("mnemonic → wallet", () => {
       /Invalid BIP-39 mnemonic/,
     );
   });
+
+  // The Polymarket CLOB v2 SDK detects ethers signers by the v5 method name
+  // `_signTypedData`. ethers v6 renamed it to `signTypedData`. Without an
+  // alias the SDK treats the wallet as a viem WalletClient and throws
+  // "wallet client is missing account address". Guard the alias here.
+  it("exposes the ethers-v5 _signTypedData alias the CLOB SDK looks for", () => {
+    const wallet = mnemonicToWallet(TEST_MNEMONIC);
+    const aliased = (wallet as unknown as {
+      _signTypedData?: unknown;
+    })._signTypedData;
+    assert.equal(typeof aliased, "function");
+  });
 });
