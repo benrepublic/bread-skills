@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { loginCommand } from "./commands/login";
 import { logoutCommand } from "./commands/logout";
+import { setupCommand } from "./commands/setup";
 import { whoamiCommand } from "./commands/whoami";
 import { searchCommand } from "./commands/search";
 import { quoteCommand } from "./commands/quote";
@@ -17,7 +18,7 @@ const program = new Command();
 program
   .name("poly")
   .description("Polymarket CLOB V2 betting CLI — natural-language friendly")
-  .version("0.2.2");
+  .version("0.3.0");
 
 program
   .command("login")
@@ -43,6 +44,14 @@ program
   .description("Delete stored credentials")
   .option("--json", "machine-readable output")
   .action((opts) => logoutCommand(opts));
+
+program
+  .command("setup")
+  .description(
+    "Detect what step the user is on and print the next concrete action (chat-pasteable).",
+  )
+  .option("--json", "machine-readable output")
+  .action((opts) => setupCommand(opts));
 
 program
   .command("whoami")

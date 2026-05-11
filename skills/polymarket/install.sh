@@ -110,21 +110,22 @@ echo "  SKILL.md:   $SCRIPT_DIR/SKILL.md"
 echo "  RESEARCH:   $SCRIPT_DIR/RESEARCH.md"
 echo
 
-bold "Next steps"
+bold "Next step"
 cat <<EOF
-  1. Try the CLI without any wallet (free, public read):
-       poly search "bitcoin price end of year" --limit 3
+  Run this to see exactly what to do next:
 
-  2. Wire SKILL.md into your agent (Claude Code, GPT Codex, OpenCode, etc.):
-       cat $SCRIPT_DIR/SKILL.md
-     Paste its contents into your agent's system prompt, or point your
-     agent's skill loader at the file path above.
+      poly setup
 
-  3. To bet real money:
-       poly login                          # paste mnemonic via stdin; stored in OS keychain
-       poly whoami                         # check balances
-       poly fund <usd> --confirm           # wrap USDC.e → pUSD (one-time)
-       poly bet <conditionId> YES <usd> --confirm
+  It detects what state you're in (no wallet / no funds / not wrapped /
+  ready) and prints the next concrete action. Re-run after each step
+  and it'll walk you through to "ready to bet."
 
-  Uninstall with: $SCRIPT_DIR/install.sh --uninstall
+  Free, no-wallet sanity check:
+      poly search "bitcoin price end of year" --limit 3
+
+  Wire SKILL.md into your agent:
+      cat $SCRIPT_DIR/SKILL.md
+  Paste into your agent's system prompt or load via your harness.
+
+  Uninstall: $SCRIPT_DIR/install.sh --uninstall
 EOF
