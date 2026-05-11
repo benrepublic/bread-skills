@@ -37,7 +37,7 @@ export async function fundCommand(
   if (before.raw.matic === 0n) {
     fail(
       jsonOutput,
-      `EOA ${eoa} has no MATIC for gas. Send a small amount (~$0.50) of MATIC to this address before funding.`,
+      `Your wallet ${eoa} has no MATIC to pay transaction fees. Send a small amount (around $0.50 worth) of MATIC to this address, then try again. MATIC is Polygon's transaction-fee currency — sold on most major exchanges. Choose "Polygon" or "MATIC" as the network when withdrawing.`,
     );
   }
 
@@ -48,9 +48,11 @@ export async function fundCommand(
     if (before.raw.usdcE < amountRaw) {
       fail(
         jsonOutput,
-        `INSUFFICIENT_USDC_E: have ${before.usdcE} USDC.e, need ${usdAmount}. ` +
-          `Polymarket only accepts the bridged USDC.e token (0x2791Bca1...), not Polygon's native USDC. ` +
-          `Bridge USDC.e to ${eoa} via \`grid-wallet-cli orchestra withdraw ${usdAmount} USDC.e --to polygon --recipient ${eoa} --reason "<purpose>"\`.`,
+        `Not enough USDC.e in your wallet: you have ${before.usdcE}, you need ${usdAmount}. ` +
+          `Polymarket only accepts USDC.e (sometimes called "Bridged USDC", contract 0x2791Bca1...) — NOT Polygon's newer regular USDC, which looks identical but won't work. ` +
+          `Send ${usdAmount} USDC.e to ${eoa} on Polygon (e.g., withdraw USDC from Coinbase to "Polygon" network) and try again. ` +
+          `If you're on Bread, your agent can do this for you: ` +
+          `\`grid-wallet-cli orchestra withdraw ${usdAmount} USDC.e --to polygon --recipient ${eoa} --reason "<purpose>"\`.`,
       );
     }
     const allowanceTx = await ensureUsdcAllowanceForOnramp(config, signer, amountRaw);

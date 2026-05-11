@@ -52,13 +52,13 @@ export async function whoamiCommand(opts: { json?: boolean }): Promise<void> {
       : "API key:           (unable to read from keychain)";
 
   const text = [
-    `EOA:               ${eoaQuick}`,
-    `Chain:             ${config.chainId} (Polygon)`,
-    `MATIC balance:     ${balances.matic}`,
-    `USDC.e balance:    ${balances.usdcE}`,
-    `pUSD balance:      ${balances.pUsd}`,
-    `pUSD allowance:    ${allowance > 0n ? "set" : "NOT SET — run `poly fund`"}`,
-    `CTF approval:      ${ctfApproved ? "set" : "NOT SET — run `poly fund`"}`,
+    `Wallet:                       ${eoaQuick}`,
+    `Network:                      Polygon`,
+    `MATIC (for transaction fees): ${balances.matic}`,
+    `USDC.e (your money):          ${balances.usdcE}`,
+    `pUSD (ready to bet):          ${balances.pUsd}`,
+    `Money activated for betting:  ${allowance > 0n ? "yes" : "not yet — run `poly fund`"}`,
+    `Marketplace permission:       ${ctfApproved ? "granted" : "not yet — run `poly fund`"}`,
     apiKeyLine,
   ].join("\n");
 

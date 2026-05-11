@@ -86,15 +86,15 @@ export async function loginCommand(opts: LoginOptions): Promise<void> {
   );
 
   const storageDescription = useEncryptedFile
-    ? `passphrase-encrypted file at ${config.credsPath}`
-    : `${keychain?.name() ?? "OS keychain"} (marker at ${config.credsPath})`;
+    ? `a password-protected file at ${config.credsPath}`
+    : `${keychain?.name() ?? "your system's secure storage"}`;
   const followup = useEncryptedFile
-    ? `Set POLYMARKET_PASSPHRASE in your shell to unlock other commands without re-entering it.`
-    : `No passphrase needed — future commands read the wallet from the keychain automatically while you're logged in.`;
+    ? `You'll need to enter your password the next time you run another command. Set POLYMARKET_PASSPHRASE in your shell if you want to skip that prompt.`
+    : `You won't need a password again — your wallet stays unlocked while you're signed into this computer.`;
 
   emit(
     jsonOutput,
-    `Logged in. EOA: ${eoa}\nCreds stored in ${storageDescription}.\n${followup}`,
+    `Wallet connected ✓\nWallet address: ${eoa}\nYour recovery phrase is safely stored in ${storageDescription}.\n${followup}\n\nNext: run \`poly setup\` to see what to do next.`,
     {
       eoa,
       credsPath: config.credsPath,

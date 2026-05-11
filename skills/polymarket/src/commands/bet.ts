@@ -71,8 +71,9 @@ export async function betCommand(
   if (balances.raw.pUsd < requiredRaw) {
     fail(
       jsonOutput,
-      `INSUFFICIENT_BALANCE: pUSD ${balances.pUsd} < $${usdAmount}. ` +
-        `Run \`poly fund ${usdAmount} --confirm\` after withdrawing USDC.e to ${eoa} via grid-wallet-cli.`,
+      `Not enough money ready to bet: your wallet has ${balances.pUsd} pUSD, but this bet needs $${usdAmount}. ` +
+        `If you have USDC.e in your wallet, run \`poly fund ${usdAmount} --confirm\` to activate it for betting. ` +
+        `If you don't have USDC.e yet, send some to ${eoa} on Polygon (e.g., withdraw USDC from Coinbase to "Polygon" network), then run \`poly fund\`.`,
     );
   }
 
