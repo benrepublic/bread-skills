@@ -112,13 +112,20 @@ echo
 
 bold "Next step"
 cat <<EOF
-  Run this to see exactly what to do next:
+  Run this on THIS machine — the same one you just installed on:
 
       poly setup
 
   It detects what state you're in (no wallet / no funds / not wrapped /
   ready) and prints the next concrete action. Re-run after each step
   and it'll walk you through to "ready to bet."
+
+  Who runs the commands?
+    - If your agent (Claude Code, OpenClaw, Codex, Hermes, etc.) has
+      shell access to this machine, the agent can run \`poly setup\`,
+      \`poly fund\`, \`poly bet\`, etc. on your behalf and report back.
+    - \`poly login\` is the one exception — it requires an interactive
+      terminal prompt for the mnemonic, so you run it yourself once.
 
   Free, no-wallet sanity check:
       poly search "bitcoin price end of year" --limit 3
