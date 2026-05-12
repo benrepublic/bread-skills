@@ -5,7 +5,7 @@ import { mnemonicToWallet } from "./wallet";
 import { buildClient, type ClobContext } from "./clob";
 import { getMarket } from "./gamma";
 import type { RankedMarket } from "./gamma";
-import { ctfApprovedForAll, pUsdAllowance } from "./chain";
+import { ctfApprovedForAll } from "./chain";
 import { fail, getPassphrase } from "./util/io";
 
 export interface SignerContext {
@@ -70,24 +70,6 @@ export async function fetchActiveMarketOrFail(
     fail(jsonOutput, `Market ${conditionId} not found, not active, or not binary YES/NO`);
   }
   return market;
-}
-
-/**
- * Pre-flights the on-chain allowance needed to BUY: pUSD must be approved to
- * the exchange. Without this, the CLOB returns NOT_ENOUGH_ALLOWANCE.
- */
-export async function requireBuyReady(
-  jsonOutput: boolean,
-  config: Config,
-  eoa: string,
-): Promise<void> {
-  const allowance = await pUsdAllowance(config, eoa);
-  if (allowance === 0n) {
-    fail(
-      jsonOutput,
-      `pUSD exchange allowance not set on ${eoa}. Run \`poly fund 0 --confirm\` to enable buying.`,
-    );
-  }
 }
 
 /**

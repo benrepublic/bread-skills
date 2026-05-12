@@ -33,7 +33,13 @@ export async function fundCommand(
   }
 
   const { config, signer, eoa } = loadSignerContext(jsonOutput);
-  const before = await readBalances(config, eoa);
+  // Snapshot balances + both allowances up front in parallel so the post-wrap
+  // checks can read from the snapshot instead of hitting RPC again.
+  const [before, pUsdAllowBefore, ctfApprovedBefore] = await Promise.all([
+    readBalances(config, eoa),
+    pUsdAllowance(config, eoa),
+    ctfApprovedForAll(config, eoa),
+  ]);
   if (before.raw.matic === 0n) {
     fail(
       jsonOutput,
@@ -61,12 +67,12 @@ export async function fundCommand(
     steps.push({ step: `wrap ${usdAmount} USDC.e → pUSD`, tx: wrapTx.hash });
   }
 
-  if ((await pUsdAllowance(config, eoa)) === 0n) {
+  if (pUsdAllowBefore === 0n) {
     const tx = await approveExchangeForPusd(config, signer);
     steps.push({ step: "pUSD approve exchange (max)", tx: tx.hash });
   }
 
-  if (!(await ctfApprovedForAll(config, eoa))) {
+  if (!ctfApprovedBefore) {
     const tx = await approveCtfForExchange(config, signer);
     steps.push({ step: "CTF setApprovalForAll(exchange)", tx: tx.hash });
   }

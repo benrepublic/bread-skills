@@ -31,9 +31,6 @@ const fixture = {
 // ─── encrypted-file mode (legacy / opt-in) ────────────────────────────
 
 describe("creds (encrypted-file mode) — encrypt/decrypt round-trip", () => {
-  before(() => {
-    if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
-  });
   after(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });

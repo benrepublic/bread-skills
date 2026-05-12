@@ -18,15 +18,12 @@ export interface Creds {
 export type CredsMode = "keychain" | "encrypted-file";
 
 interface KeychainMarker {
-  version: 2;
   mode: "keychain";
   eoa: string;
 }
 
 interface EncryptedFile {
-  version: 1 | 2;
-  /** Present only in version 2 — older v1 files implicitly use encrypted-file mode. */
-  mode?: "encrypted-file";
+  mode: "encrypted-file";
   kdf: "pbkdf2-sha256";
   iterations: number;
   salt: string;
@@ -45,8 +42,7 @@ function deriveKey(passphrase: string, salt: Buffer): Buffer {
 }
 
 function readStoredFile(filePath: string): StoredFile {
-  const raw = fs.readFileSync(filePath, "utf8");
-  return JSON.parse(raw) as StoredFile;
+  return JSON.parse(fs.readFileSync(filePath, "utf8")) as StoredFile;
 }
 
 function writeStoredFile(filePath: string, data: StoredFile): void {
@@ -57,10 +53,7 @@ function writeStoredFile(filePath: string, data: StoredFile): void {
 /** Returns the current storage mode, or null if no creds are saved. */
 export function getCredsMode(filePath: string): CredsMode | null {
   if (!fs.existsSync(filePath)) return null;
-  const f = readStoredFile(filePath);
-  if ("mode" in f && f.mode === "keychain") return "keychain";
-  // Files without an explicit mode (v1) are encrypted-file by definition.
-  return "encrypted-file";
+  return readStoredFile(filePath).mode;
 }
 
 export interface SaveCredsOptions {
@@ -80,16 +73,10 @@ export function saveCreds(filePath: string, creds: Creds, options: SaveCredsOpti
     // Serialize the WHOLE creds bundle into one keychain item. The on-disk
     // marker only records the EOA + mode — no secret material in the file.
     kc.set(KEYCHAIN_ACCOUNT, JSON.stringify(creds));
-    const marker: KeychainMarker = {
-      version: 2,
-      mode: "keychain",
-      eoa: creds.eoa,
-    };
-    writeStoredFile(filePath, marker);
+    writeStoredFile(filePath, { mode: "keychain", eoa: creds.eoa });
     return;
   }
 
-  // encrypted-file mode (legacy / opt-in for users who don't want OS keychain)
   if (!options.passphrase || options.passphrase.length < 8) {
     throw new Error("Encryption passphrase must be at least 8 characters");
   }
@@ -99,21 +86,17 @@ export function saveCreds(filePath: string, creds: Creds, options: SaveCredsOpti
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
   const plaintext = Buffer.from(JSON.stringify(creds), "utf8");
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const authTag = cipher.getAuthTag();
 
-  const payload: EncryptedFile = {
-    version: 2,
+  writeStoredFile(filePath, {
     mode: "encrypted-file",
     kdf: "pbkdf2-sha256",
     iterations: PBKDF2_ITERATIONS,
     salt: salt.toString("base64"),
     iv: iv.toString("base64"),
-    authTag: authTag.toString("base64"),
+    authTag: cipher.getAuthTag().toString("base64"),
     ciphertext: ciphertext.toString("base64"),
     eoa: creds.eoa,
-  };
-
-  writeStoredFile(filePath, payload);
+  });
 }
 
 export interface LoadCredsOptions {
@@ -127,61 +110,49 @@ export function loadCreds(filePath: string, options: LoadCredsOptions = {}): Cre
   }
   const file = readStoredFile(filePath);
 
-  if ("mode" in file && file.mode === "keychain") {
+  if (file.mode === "keychain") {
     const kc = getKeychain();
     if (!kc) {
       throw new Error(
         "Credentials are in keychain mode but no OS keychain is available on this platform.",
       );
     }
-    const value = kc.get(KEYCHAIN_ACCOUNT);
-    return JSON.parse(value) as Creds;
+    return JSON.parse(kc.get(KEYCHAIN_ACCOUNT)) as Creds;
   }
 
-  // encrypted-file mode (v1 implicitly, or v2 with mode === "encrypted-file")
-  const ef = file as EncryptedFile;
-  if (ef.kdf !== "pbkdf2-sha256") {
-    throw new Error(`Unsupported creds file kdf: ${ef.kdf}`);
-  }
   if (!options.passphrase) {
     throw new Error(
       "POLYMARKET_PASSPHRASE not set. Export the encryption passphrase, or re-run `poly login` (without --encrypted-file) to migrate to keychain mode.",
     );
   }
-  const salt = Buffer.from(ef.salt, "base64");
-  const iv = Buffer.from(ef.iv, "base64");
-  const authTag = Buffer.from(ef.authTag, "base64");
-  const ciphertext = Buffer.from(ef.ciphertext, "base64");
+  const salt = Buffer.from(file.salt, "base64");
+  const iv = Buffer.from(file.iv, "base64");
+  const authTag = Buffer.from(file.authTag, "base64");
+  const ciphertext = Buffer.from(file.ciphertext, "base64");
   const key = deriveKey(options.passphrase, salt);
   const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
   decipher.setAuthTag(authTag);
-  let plaintext: Buffer;
   try {
-    plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return JSON.parse(plaintext.toString("utf8")) as Creds;
   } catch {
     throw new Error("Decryption failed — wrong passphrase or corrupted file");
   }
-  return JSON.parse(plaintext.toString("utf8")) as Creds;
 }
 
 export function deleteCreds(filePath: string): boolean {
-  let removed = false;
-  if (fs.existsSync(filePath)) {
-    const mode = getCredsMode(filePath);
-    if (mode === "keychain") {
-      const kc = getKeychain();
-      // Best-effort: if the backend is unavailable now, still remove the
-      // marker file so the user can `poly login` cleanly.
-      try {
-        kc?.delete(KEYCHAIN_ACCOUNT);
-      } catch {
-        // ignore — file removal is the main signal of "logged out"
-      }
+  if (!fs.existsSync(filePath)) return false;
+  if (getCredsMode(filePath) === "keychain") {
+    // Best-effort — if the backend is unavailable, still remove the marker
+    // file so `poly login` can re-init cleanly.
+    try {
+      getKeychain()?.delete(KEYCHAIN_ACCOUNT);
+    } catch {
+      // ignore
     }
-    fs.unlinkSync(filePath);
-    removed = true;
   }
-  return removed;
+  fs.unlinkSync(filePath);
+  return true;
 }
 
 export function credsExist(filePath: string): boolean {
@@ -190,6 +161,5 @@ export function credsExist(filePath: string): boolean {
 
 export function readEoaWithoutDecrypting(filePath: string): string | null {
   if (!fs.existsSync(filePath)) return null;
-  const f = readStoredFile(filePath);
-  return f.eoa ?? null;
+  return readStoredFile(filePath).eoa ?? null;
 }

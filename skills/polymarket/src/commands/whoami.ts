@@ -33,23 +33,24 @@ export async function whoamiCommand(opts: { json?: boolean }): Promise<void> {
   // unseals the item for us while the user is logged in). In encrypted-file
   // mode we need POLYMARKET_PASSPHRASE to decrypt; if it's missing we leave
   // the field blank rather than failing the whole `whoami`.
-  let apiKeyShort: string | null = null;
   const mode = getCredsMode(config.credsPath);
-  const canDecrypt =
-    mode === "keychain" || (mode === "encrypted-file" && !!getPassphrase());
-  if (canDecrypt) {
+  const passphrase = getPassphrase();
+  const skipDecrypt = mode === "encrypted-file" && !passphrase;
+  let apiKeyShort: string | null = null;
+  if (!skipDecrypt) {
     try {
-      const creds = loadCreds(config.credsPath, { passphrase: getPassphrase() });
-      apiKeyShort = creds.apiKey.key.slice(0, 8) + "…";
+      apiKeyShort = loadCreds(config.credsPath, { passphrase }).apiKey.key.slice(0, 8) + "…";
     } catch {
-      apiKeyShort = null;
+      // Encrypted-file decryption can fail on the wrong passphrase; keychain
+      // can fail if the user has revoked access. Either way, show a blank
+      // API-key line rather than aborting the whoami summary.
     }
   }
   const apiKeyLine = apiKeyShort
-    ? `API key:           ${apiKeyShort}`
-    : mode === "encrypted-file"
-      ? "API key:           (set POLYMARKET_PASSPHRASE to display)"
-      : "API key:           (unable to read from keychain)";
+    ? `API key:                      ${apiKeyShort}`
+    : skipDecrypt
+      ? "API key:                      (set POLYMARKET_PASSPHRASE to display)"
+      : "API key:                      (stored — couldn't read just now)";
 
   const text = [
     `Wallet:                       ${eoaQuick}`,

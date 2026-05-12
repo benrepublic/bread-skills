@@ -1,7 +1,7 @@
 import { loadConfig } from "../config";
 import { credsExist, readEoaWithoutDecrypting } from "../creds";
 import { readBalances, pUsdAllowance, ctfApprovedForAll } from "../chain";
-import { emit } from "../util/io";
+import { emit, fail } from "../util/io";
 
 export interface SetupOptions {
   json?: boolean;
@@ -19,7 +19,7 @@ interface SetupSnapshot {
   state: SetupState;
   eoa: string | null;
   balances: {
-    pol: string;
+    matic: string;
     usdcE: string;
     pUsd: string;
   } | null;
@@ -28,6 +28,13 @@ interface SetupSnapshot {
     ctf: boolean;
   } | null;
 }
+
+const NO_WALLET_SNAPSHOT: SetupSnapshot = {
+  state: "no-wallet",
+  eoa: null,
+  balances: null,
+  allowances: null,
+};
 
 /**
  * Onboards a fresh user with a chat-pasteable, state-aware next-action
@@ -41,97 +48,75 @@ export async function setupCommand(opts: SetupOptions): Promise<void> {
   const jsonOutput = !!opts.json;
   const config = loadConfig();
 
-  // State 1: no wallet yet
+  // State 1: no wallet yet (file missing, or file present but no EOA in marker)
   if (!credsExist(config.credsPath)) {
-    const snapshot: SetupSnapshot = {
-      state: "no-wallet",
-      eoa: null,
-      balances: null,
-      allowances: null,
-    };
-    emit(jsonOutput, renderNoWallet(), snapshot);
+    emit(jsonOutput, renderNoWallet(), NO_WALLET_SNAPSHOT);
     return;
   }
-
   const eoa = readEoaWithoutDecrypting(config.credsPath);
   if (!eoa) {
-    emit(jsonOutput, renderNoWallet(), {
-      state: "no-wallet",
-      eoa: null,
-      balances: null,
-      allowances: null,
-    });
+    emit(jsonOutput, renderNoWallet(), NO_WALLET_SNAPSHOT);
     return;
   }
 
-  const [balances, pUsdAllow, ctfApproved] = await Promise.all([
-    readBalances(config, eoa),
-    pUsdAllowance(config, eoa),
-    ctfApprovedForAll(config, eoa),
-  ]);
+  let balances, pUsdAllow: bigint, ctfApproved: boolean;
+  try {
+    [balances, pUsdAllow, ctfApproved] = await Promise.all([
+      readBalances(config, eoa),
+      pUsdAllowance(config, eoa),
+      ctfApprovedForAll(config, eoa),
+    ]);
+  } catch (err) {
+    fail(
+      jsonOutput,
+      "Couldn't reach Polygon to check your wallet state. Check your internet connection and try again.",
+      err instanceof Error ? err.message : err,
+    );
+  }
 
+  const snapshotBase = {
+    eoa,
+    balances: { matic: balances.matic, usdcE: balances.usdcE, pUsd: balances.pUsd },
+    allowances: { pUsd: pUsdAllow > 0n, ctf: ctfApproved },
+  };
   const hasGas = balances.raw.matic > 0n;
   const hasUsdcE = balances.raw.usdcE > 0n;
   const hasPusd = balances.raw.pUsd > 0n;
   const allowancesSet = pUsdAllow > 0n && ctfApproved;
 
-  // State 2: wallet exists but no MATIC for fees (always blocks any tx)
+  // State 2: no MATIC for fees (blocks all on-chain transactions)
   if (!hasGas) {
-    emit(jsonOutput, renderNoGas(eoa, balances), {
-      state: "no-gas",
-      eoa,
-      balances: pickBalances(balances),
-      allowances: { pUsd: pUsdAllow > 0n, ctf: ctfApproved },
-    });
+    emit(jsonOutput, renderNoGas(eoa, balances), { state: "no-gas", ...snapshotBase });
     return;
   }
-
-  // State 3: has fees but no USDC.e
+  // State 3: has fees but no USDC.e or pUSD yet
   if (!hasUsdcE && !hasPusd) {
-    emit(jsonOutput, renderNoUsdce(eoa, balances), {
-      state: "no-usdce",
-      eoa,
-      balances: pickBalances(balances),
-      allowances: { pUsd: pUsdAllow > 0n, ctf: ctfApproved },
-    });
+    emit(jsonOutput, renderNoUsdce(eoa, balances), { state: "no-usdce", ...snapshotBase });
     return;
   }
-
-  // State 4: has USDC.e but it isn't activated yet
+  // State 4: USDC.e on hand but not yet activated for betting
   if (hasUsdcE && (!hasPusd || !allowancesSet)) {
-    const wholeUsdcE = Math.floor(Number(balances.usdcE));
-    const suggestedAmount = wholeUsdcE > 0 ? wholeUsdcE : Number(balances.usdcE);
-    emit(jsonOutput, renderNeedsWrap(eoa, balances, suggestedAmount), {
-      state: "needs-wrap",
-      eoa,
-      balances: pickBalances(balances),
-      allowances: { pUsd: pUsdAllow > 0n, ctf: ctfApproved },
-    });
+    const whole = Math.floor(Number(balances.usdcE));
+    const suggested = whole > 0 ? whole : Number(balances.usdcE);
+    emit(
+      jsonOutput,
+      renderNeedsWrap(eoa, balances, suggested),
+      { state: "needs-wrap", ...snapshotBase },
+    );
     return;
   }
-
-  // State 5: pUSD present but allowances not set
+  // State 5: pUSD present but allowances missing (rare — only happens if
+  // someone hand-funded pUSD or migrated mid-allowance-setup)
   if (hasPusd && !allowancesSet) {
-    emit(jsonOutput, renderNeedsAllowances(eoa, balances), {
-      state: "needs-allowances",
-      eoa,
-      balances: pickBalances(balances),
-      allowances: { pUsd: pUsdAllow > 0n, ctf: ctfApproved },
-    });
+    emit(
+      jsonOutput,
+      renderNeedsAllowances(eoa, balances),
+      { state: "needs-allowances", ...snapshotBase },
+    );
     return;
   }
-
   // State 6: fully ready
-  emit(jsonOutput, renderReady(eoa, balances), {
-    state: "ready",
-    eoa,
-    balances: pickBalances(balances),
-    allowances: { pUsd: pUsdAllow > 0n, ctf: ctfApproved },
-  });
-}
-
-function pickBalances(b: { matic: string; usdcE: string; pUsd: string }) {
-  return { pol: b.matic, usdcE: b.usdcE, pUsd: b.pUsd };
+  emit(jsonOutput, renderReady(eoa, balances), { state: "ready", ...snapshotBase });
 }
 
 // ─── Text renderers ──────────────────────────────────────────────────────

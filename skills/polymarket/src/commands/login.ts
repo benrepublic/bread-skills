@@ -31,10 +31,7 @@ export async function loginCommand(opts: LoginOptions): Promise<void> {
 
   const keychain = getKeychain();
   const useEncryptedFile = !!opts.encryptedFile || keychain === null;
-  if (opts.encryptedFile && keychain) {
-    // user explicitly chose --encrypted-file even though keychain is available
-  } else if (keychain === null && !opts.encryptedFile) {
-    // tell the user we're falling back; they may want to know
+  if (!opts.encryptedFile && !keychain) {
     process.stderr.write(
       `note: no OS keychain available on this platform; falling back to passphrase-encrypted file at ${config.credsPath}\n`,
     );
@@ -85,9 +82,11 @@ export async function loginCommand(opts: LoginOptions): Promise<void> {
       : { mode: "keychain" },
   );
 
+  // In the keychain branch, `keychain` is guaranteed non-null because
+  // useEncryptedFile would otherwise have been forced to true above.
   const storageDescription = useEncryptedFile
     ? `a password-protected file at ${config.credsPath}`
-    : `${keychain?.name() ?? "your system's secure storage"}`;
+    : keychain!.name();
   const followup = useEncryptedFile
     ? `You'll need to enter your password the next time you run another command. Set POLYMARKET_PASSPHRASE in your shell if you want to skip that prompt.`
     : `You won't need a password again — your wallet stays unlocked while you're signed into this computer.`;

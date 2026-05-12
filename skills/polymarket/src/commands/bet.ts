@@ -4,9 +4,8 @@ import {
   parseSide,
   parsePositiveUsd,
   fetchActiveMarketOrFail,
-  requireBuyReady,
 } from "../context";
-import { readBalances, parseSixDecimal } from "../chain";
+import { readBalances, parseSixDecimal, pUsdAllowance } from "../chain";
 import { emit, fail } from "../util/io";
 
 export interface BetOptions {
@@ -58,14 +57,22 @@ export async function betCommand(
 
   const tokenId = market.clobTokenIds[sideUpper];
 
-  await requireBuyReady(jsonOutput, config, eoa);
-
-  // Pre-flight: pUSD balance, book, tick size — all in parallel for speed.
-  const [balances, book, tickSize] = await Promise.all([
+  // Pre-flight balance, book, tick size, AND allowance in parallel. Without
+  // the pUSD-exchange allowance the CLOB returns NOT_ENOUGH_ALLOWANCE on
+  // submit; check it locally up front rather than serializing a separate
+  // RPC before the Promise.all.
+  const [balances, book, tickSize, pUsdAllow] = await Promise.all([
     readBalances(config, eoa),
     getBook(clob, tokenId),
     getTickSize(clob, tokenId),
+    pUsdAllowance(config, eoa),
   ]);
+  if (pUsdAllow === 0n) {
+    fail(
+      jsonOutput,
+      `pUSD exchange allowance not set on ${eoa}. Run \`poly fund 0 --confirm\` to enable buying.`,
+    );
+  }
 
   const requiredRaw = parseSixDecimal(usdAmount);
   if (balances.raw.pUsd < requiredRaw) {

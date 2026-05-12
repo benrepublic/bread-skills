@@ -17,8 +17,19 @@ const CTF_ABI = [
   "function setApprovalForAll(address operator, bool approved)",
 ];
 
+// Cache the JsonRpcProvider by (rpcUrl, chainId). Constructing a provider
+// does network-detection and polling setup; callers like `poly setup` and
+// `poly whoami` previously instantiated 3+ per invocation. One per
+// (rpcUrl, chainId) for the process lifetime is plenty.
+const providerCache = new Map<string, ethers.JsonRpcProvider>();
 export function provider(config: Config): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(config.polygonRpc, config.chainId);
+  const key = `${config.polygonRpc}|${config.chainId}`;
+  let p = providerCache.get(key);
+  if (!p) {
+    p = new ethers.JsonRpcProvider(config.polygonRpc, config.chainId);
+    providerCache.set(key, p);
+  }
+  return p;
 }
 
 export interface BalanceSnapshot {
